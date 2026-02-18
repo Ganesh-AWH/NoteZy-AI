@@ -17,7 +17,6 @@ class EmbeddingModel:
             convert_to_numpy=True,
             normalize_embeddings=True #It improves cosine similarity results
         )
-        
 
     def embed_query(self, query: str) -> np.ndarray:
         embedding = self.model.encode(
@@ -27,6 +26,5 @@ class EmbeddingModel:
         )
         return embedding.reshape(1, -1)
 # print(embeddings.shape) #->(3, 384) 3 chunks Each chunk → 384-dimensional vector
-
 
 

@@ -3,54 +3,59 @@ from utils.text_cleaner import RandomCaseTextCleaner
 from utils.chunker import WordChunker
 from utils.embeddings import EmbeddingModel
 from utils.vector_store import FAISSVectorStore
+from pathlib import Path
 
 
 class UtilsServicePipeline:
-    """
-    End-to-end pipeline:
-    File → Clean → Chunk → Embed → Store → Search
-    """
-
-    def __init__(self, chunk_size=40, overlap=10):
+    def __init__(self, chunk_size=40, overlap=10, store_path="vector_store"):
         self.extractor = FileTextExtractor()
         self.cleaner_cls = RandomCaseTextCleaner
         self.chunker = WordChunker(chunk_size, overlap)
         self.embedder = EmbeddingModel()
-        self.vector_store = None
+        self.store_path = store_path
+
+        # Auto-load if exists
+        if Path(store_path).exists():
+            self.vector_store = FAISSVectorStore.load(store_path)
+        else:
+            self.vector_store = None
 
     # ===============================
-    # INGESTION
+    # INGEST
     # ===============================
     def ingest(self, file_path: str):
-        # 1️⃣ Extract text
-        raw_text = self.extractor.extract_text(file_path)
-        # 2️⃣ Clean text
-        cleaned_text = self.cleaner_cls(raw_text).clean()
-        # 3️⃣ Chunk text
-        chunks = self.chunker.chunk(cleaned_text)
-        if not chunks:
-            raise ValueError("No chunks generated from document")
+        file_name = Path(file_path).name
 
-        # 4️⃣ Embeddings
+        if self.vector_store and file_name in self.vector_store.files:
+            return {
+                "status": "skipped",
+                "reason": "File already ingested"
+            }
+
+        raw_text = self.extractor.extract_text(file_path)
+        cleaned_text = self.cleaner_cls(raw_text).clean()
+        chunks = self.chunker.chunk(cleaned_text)
         embeddings = self.embedder.embed_texts(chunks)
 
-        # 5️⃣ Vector store
-        dim = embeddings.shape[1]
-        self.vector_store = FAISSVectorStore(dim)
+        if self.vector_store is None:
+            self.vector_store = FAISSVectorStore(embeddings.shape[1])
+
         self.vector_store.add(embeddings, chunks)
+        self.vector_store.files.add(file_name)
+        self.vector_store.save(self.store_path)
 
         return {
             "status": "success",
-            "chunks": len(chunks),
-            "embedding_dim": dim
+            "chunks_added": len(chunks),
         }
+
 
     # ===============================
     # SEARCH
     # ===============================
     def search(self, query: str, k=3):
         if self.vector_store is None:
-            raise RuntimeError("Pipeline not ingested yet")
+            raise RuntimeError("No vector store found. Ingest documents first.")
 
         query_embedding = self.embedder.embed_query(query)
         return self.vector_store.search(query_embedding, k)

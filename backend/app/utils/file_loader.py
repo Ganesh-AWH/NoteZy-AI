@@ -49,7 +49,7 @@ class ImagePreprocessor:
 # OCR ENGINE
 # ===============================
 class OCREngine:
-    def _init_(self, lang="eng"):
+    def __init__(self, lang="eng"):
         self.lang = lang
         self.configs = [
             "--oem 3 --psm 6",
@@ -74,7 +74,7 @@ class OCREngine:
 # IMAGE TEXT EXTRACTOR
 # ===============================
 class ImageTextExtractor:
-    def _init_(self, ocr_engine: OCREngine):
+    def __init__(self, ocr_engine: OCREngine):
         self.ocr = ocr_engine
 
     def extract(self, path: str) -> str:
@@ -87,7 +87,7 @@ class ImageTextExtractor:
 # PDF TEXT EXTRACTOR
 # ===============================
 class PDFTextExtractor:
-    def _init_(self, ocr_engine: OCREngine):
+    def __init__(self, ocr_engine: OCREngine):
         self.ocr = ocr_engine
 
     @staticmethod
@@ -130,7 +130,7 @@ class PDFTextExtractor:
 class FileTextExtractor:
     IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
 
-    def _init_(self):
+    def __init__(self):
         TesseractConfig.setup()
         self.ocr_engine = OCREngine()
         self.image_extractor = ImageTextExtractor(self.ocr_engine)
@@ -146,3 +146,4 @@ class FileTextExtractor:
             return self.pdf_extractor.extract(file_path)
 
         raise ValueError("Unsupported file type")
+

@@ -63,5 +63,4 @@ def manual_faiss_test():
         print(f"Text: {r['text']}")
 
 
-if __name__ == "__main__":
-    manual_faiss_test()
+
